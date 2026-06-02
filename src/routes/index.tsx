@@ -310,6 +310,7 @@ function Index() {
     } finally {
       setSyncing(false);
     }
+    loadTech(symbol);
   }
 
   async function refreshFx() {
