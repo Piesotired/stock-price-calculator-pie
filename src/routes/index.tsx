@@ -256,6 +256,7 @@ function Index() {
         /* ignore */
       }
     })();
+    loadTech(ticker);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
