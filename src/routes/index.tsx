@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,8 +13,12 @@ import {
   Wallet,
   LineChart,
   DollarSign,
+  Rocket,
+  Search,
+  ArrowLeftRight,
+  Sparkles,
 } from "lucide-react";
-import { getQuote } from "@/lib/price.functions";
+import { getQuote, searchSymbols, getUsdThb } from "@/lib/price.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -38,6 +42,8 @@ const fmt = (v: number, d = 2) =>
     : "—";
 const fmtShares = (v: number) =>
   isFinite(v) ? v.toLocaleString(undefined, { maximumFractionDigits: 6 }) : "—";
+
+type Ccy = "USD" | "THB";
 
 function NumField({
   label,
@@ -87,7 +93,6 @@ function NumField({
   );
 }
 
-/** Row aligned by fixed height so left/right columns line up perfectly */
 function Row({
   label,
   thai,
@@ -155,21 +160,35 @@ function SectionTitle({
 
 function Index() {
   const fetchQuote = useServerFn(getQuote);
+  const fetchSearch = useServerFn(searchSymbols);
+  const fetchFx = useServerFn(getUsdThb);
 
   const [ticker, setTicker] = useState("META");
   const [avgCost, setAvgCost] = useState<Num>(597);
   const [totalCost, setTotalCost] = useState<Num>(69.93);
   const [currentPrice, setCurrentPrice] = useState<Num>(610);
-  const [buyUsd, setBuyUsd] = useState<Num>(50);
+  const [buyUsd, setBuyUsd] = useState<Num>(15);
   const [sellPrice, setSellPrice] = useState<Num>(620);
   const [sellShares, setSellShares] = useState<Num>(0);
 
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  // Recalc keys: separate for buy-side and sell-side
   const [buyKey, setBuyKey] = useState(0);
   const [sellKey, setSellKey] = useState(0);
+
+  // Ticker autocomplete
+  const [suggestions, setSuggestions] = useState<
+    { symbol: string; name: string; exch: string; type: string }[]
+  >([]);
+  const [showSug, setShowSug] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const sugBoxRef = useRef<HTMLDivElement | null>(null);
+
+  // Currency toggle
+  const [ccy, setCcy] = useState<Ccy>("USD");
+  const [fxRate, setFxRate] = useState<number | null>(null);
+  const [fxLoading, setFxLoading] = useState(false);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -180,12 +199,59 @@ function Index() {
     };
   }, []);
 
-  async function handleSync() {
-    if (!ticker.trim()) return;
+  // Load FX rate once
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetchFx({});
+        if (r.ok) setFxRate(r.rate);
+      } catch {
+        /* ignore */
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Debounced symbol search
+  useEffect(() => {
+    const q = ticker.trim();
+    if (!q || !showSug) {
+      setSuggestions([]);
+      return;
+    }
+    setSearching(true);
+    const id = setTimeout(async () => {
+      try {
+        const r = await fetchSearch({ data: { q } });
+        if (r.ok) setSuggestions(r.results);
+      } catch {
+        /* ignore */
+      } finally {
+        setSearching(false);
+      }
+    }, 220);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticker, showSug]);
+
+  // Click outside to close suggestion
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (sugBoxRef.current && !sugBoxRef.current.contains(e.target as Node)) {
+        setShowSug(false);
+      }
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  async function handleSync(sym?: string) {
+    const symbol = (sym ?? ticker).trim();
+    if (!symbol) return;
     setSyncing(true);
     setSyncMsg(null);
     try {
-      const res = await fetchQuote({ data: { symbol: ticker } });
+      const res = await fetchQuote({ data: { symbol } });
       if (res.ok) {
         setCurrentPrice(Number(res.price.toFixed(4)));
         setSyncMsg({ ok: true, text: `${res.symbol} ${res.currency} ${fmt(res.price)}` });
@@ -199,7 +265,29 @@ function Index() {
     }
   }
 
-  // Auto-live calc (buy side)
+  async function refreshFx() {
+    setFxLoading(true);
+    try {
+      const r = await fetchFx({});
+      if (r.ok) setFxRate(r.rate);
+    } finally {
+      setFxLoading(false);
+    }
+  }
+
+  // Money formatter respecting current currency
+  const money = (usd: number) => {
+    if (ccy === "USD" || !fxRate) return `$${fmt(usd)}`;
+    return `฿${fmt(usd * fxRate)}`;
+  };
+  const moneySigned = (usd: number) => {
+    const s = usd >= 0 ? "+" : "-";
+    const abs = Math.abs(usd);
+    if (ccy === "USD" || !fxRate) return `${s}$${fmt(abs)}`;
+    return `${s}฿${fmt(abs * fxRate)}`;
+  };
+  const sym = ccy === "USD" ? "$" : "฿";
+
   const calc = useMemo(() => {
     const a = n(avgCost);
     const tc = n(totalCost);
@@ -239,7 +327,6 @@ function Index() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avgCost, totalCost, currentPrice, buyUsd, buyKey]);
 
-  // Sell calc — gated by its own button (sellKey)
   const sell = useMemo(() => {
     const sp = n(sellPrice);
     const sharesAvailable = calc.totalShares;
@@ -254,16 +341,59 @@ function Index() {
   }, [sellKey]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 text-foreground">
+    <main className="relative min-h-screen overflow-hidden text-foreground">
+      {/* ===== Space-themed background ===== */}
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_oklch(0.25_0.08_280)_0%,_oklch(0.12_0.04_270)_45%,_oklch(0.08_0.02_260)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.55] [background-image:radial-gradient(1px_1px_at_20px_30px,white,transparent),radial-gradient(1px_1px_at_40px_70px,white,transparent),radial-gradient(1.5px_1.5px_at_90px_40px,white,transparent),radial-gradient(1px_1px_at_130px_80px,white,transparent),radial-gradient(1px_1px_at_160px_120px,white,transparent),radial-gradient(2px_2px_at_200px_50px,white,transparent),radial-gradient(1px_1px_at_240px_160px,white,transparent),radial-gradient(1px_1px_at_300px_90px,white,transparent),radial-gradient(1.5px_1.5px_at_360px_180px,white,transparent),radial-gradient(1px_1px_at_420px_30px,white,transparent)] [background-size:480px_240px] [background-repeat:repeat]" />
+      <div className="pointer-events-none absolute -top-32 -right-32 -z-10 h-96 w-96 rounded-full bg-fuchsia-500/15 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -left-32 -z-10 h-96 w-96 rounded-full bg-cyan-500/15 blur-3xl" />
+      <div className="pointer-events-none absolute top-1/3 left-1/2 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-500/10 blur-3xl" />
+
+      {/* Floating currency toggle */}
+      <div className="fixed right-4 top-4 z-50 flex items-center gap-2">
+        <div className="rounded-full border border-border/60 bg-background/70 p-1 shadow-lg backdrop-blur-md">
+          <button
+            onClick={() => setCcy("USD")}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+              ccy === "USD"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            USD $
+          </button>
+          <button
+            onClick={() => setCcy("THB")}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+              ccy === "THB"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            THB ฿
+          </button>
+        </div>
+        <button
+          onClick={refreshFx}
+          disabled={fxLoading}
+          title={fxRate ? `1 USD ≈ ${fmt(fxRate)} THB` : "Loading rate…"}
+          className="flex items-center gap-1 rounded-full border border-border/60 bg-background/70 px-2.5 py-1.5 text-[10px] text-muted-foreground shadow-lg backdrop-blur-md hover:text-foreground"
+        >
+          <ArrowLeftRight className={`h-3 w-3 ${fxLoading ? "animate-spin" : ""}`} />
+          {fxRate ? `1$ = ${fmt(fxRate)}฿` : "rate…"}
+        </button>
+      </div>
+
       <div className="mx-auto max-w-[1400px] px-4 py-5">
         {/* Header */}
         <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-primary/15 p-2 text-primary ring-1 ring-primary/20">
-              <Calculator className="h-4 w-4" />
+            <div className="relative rounded-lg bg-primary/15 p-2 text-primary ring-1 ring-primary/30">
+              <Rocket className="h-4 w-4" />
+              <Sparkles className="absolute -right-1 -top-1 h-2.5 w-2.5 text-fuchsia-300" />
             </div>
             <div>
-              <h1 className="text-base font-semibold leading-tight">
+              <h1 className="bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-indigo-300 bg-clip-text text-base font-semibold leading-tight text-transparent">
                 Cost Basis Calculator
               </h1>
               <p className="text-[11px] text-muted-foreground">
@@ -284,8 +414,8 @@ function Index() {
           )}
         </header>
 
-        {/* ===== SECTION A — Inputs + Live Results (linked) ===== */}
-        <Card className="mb-4 border-border/60 bg-card/40 p-5 backdrop-blur">
+        {/* ===== SECTION A — Inputs + Live Results ===== */}
+        <Card className="mb-4 border-border/60 bg-card/40 p-5 backdrop-blur-xl">
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             {/* Inputs */}
             <div className="space-y-4">
@@ -296,22 +426,63 @@ function Index() {
                 icon={<Wallet className="h-4 w-4" />}
               />
 
-              {/* Ticker */}
-              <div className="space-y-1">
+              {/* Ticker with autocomplete */}
+              <div className="space-y-1" ref={sugBoxRef}>
                 <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
                   Ticker (สัญลักษณ์หุ้น)
                 </Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={ticker}
-                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                    className="h-9 bg-background/60 text-sm font-semibold tracking-wide"
-                    placeholder="e.g. META"
-                  />
+                <div className="relative flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={ticker}
+                      onChange={(e) => {
+                        setTicker(e.target.value.toUpperCase());
+                        setShowSug(true);
+                      }}
+                      onFocus={() => setShowSug(true)}
+                      className="h-9 bg-background/60 pl-8 text-sm font-semibold tracking-wide"
+                      placeholder="Type M, AAPL, TSLA..."
+                      autoComplete="off"
+                    />
+                    {showSug && (suggestions.length > 0 || searching) && (
+                      <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-auto rounded-md border border-border/60 bg-popover/95 shadow-xl backdrop-blur-xl">
+                        {searching && (
+                          <div className="px-3 py-2 text-[11px] text-muted-foreground">
+                            Searching…
+                          </div>
+                        )}
+                        {suggestions.map((s) => (
+                          <button
+                            key={s.symbol}
+                            type="button"
+                            onClick={() => {
+                              setTicker(s.symbol.toUpperCase());
+                              setShowSug(false);
+                              handleSync(s.symbol);
+                            }}
+                            className="flex w-full items-center justify-between gap-2 border-b border-border/30 px-3 py-2 text-left text-xs last:border-0 hover:bg-primary/10"
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-semibold tracking-wide">
+                                {s.symbol}
+                              </span>
+                              <span className="truncate text-[10px] text-muted-foreground">
+                                {s.name}
+                              </span>
+                            </div>
+                            <span className="shrink-0 rounded bg-muted/50 px-1.5 py-0.5 text-[9px] uppercase text-muted-foreground">
+                              {s.exch || s.type}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={handleSync}
+                    onClick={() => handleSync()}
                     disabled={syncing}
                     className="h-9 gap-1.5 px-3"
                   >
@@ -360,14 +531,19 @@ function Index() {
                   />
                   <NumField
                     label="Buy amount"
-                    thai="จำนวนเงินที่ซื้อ"
+                    thai="จำนวนเงินที่ซื้อ (USD)"
                     value={buyUsd}
                     onChange={setBuyUsd}
                     prefix="$"
+                    hint={
+                      ccy === "THB" && fxRate
+                        ? `≈ ฿${fmt(n(buyUsd) * fxRate)}`
+                        : undefined
+                    }
                   />
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {[50, 100, 250, 500, 1000].map((v) => (
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  {[15, 30, 45, 60, 75, 100, 150, 300].map((v) => (
                     <Button
                       key={v}
                       size="sm"
@@ -378,10 +554,32 @@ function Index() {
                       ${v}
                     </Button>
                   ))}
+                  <div className="ml-auto flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 text-sm"
+                      onClick={() =>
+                        setBuyUsd(Math.max(0, (n(buyUsd) || 0) - 15))
+                      }
+                      title="-15"
+                    >
+                      −
+                    </Button>
+                    <span className="text-[10px] text-muted-foreground">step 15</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 text-sm"
+                      onClick={() => setBuyUsd((n(buyUsd) || 0) + 15)}
+                      title="+15"
+                    >
+                      +
+                    </Button>
+                  </div>
                 </div>
               </div>
 
-              {/* Calculate button BELOW the inputs */}
               <Button
                 onClick={() => setBuyKey((k) => k + 1)}
                 className="h-10 w-full gap-2"
@@ -394,7 +592,7 @@ function Index() {
               </p>
             </div>
 
-            {/* Results — perfectly aligned rows */}
+            {/* Results */}
             <div className="space-y-3">
               <SectionTitle
                 step="2"
@@ -403,30 +601,26 @@ function Index() {
                 icon={<LineChart className="h-4 w-4" />}
               />
 
-              {/* Column headers */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-md bg-background/40 px-3 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Current (ปัจจุบัน)
                   <span className="ml-1 text-[10px] font-normal opacity-70">
-                    @ ${fmt(n(currentPrice))}
+                    @ {sym}
+                    {ccy === "USD" || !fxRate
+                      ? fmt(n(currentPrice))
+                      : fmt(n(currentPrice) * fxRate)}
                   </span>
                 </div>
                 <div className="rounded-md bg-primary/10 px-3 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wider text-primary">
                   After Buy (หลังซื้อเพิ่ม)
                   <span className="ml-1 text-[10px] font-normal opacity-80">
-                    +${fmt(n(buyUsd))}
+                    +{money(n(buyUsd))}
                   </span>
                 </div>
               </div>
 
-              {/* Aligned rows: each row in Current ↔ After */}
               <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-                {/* Shares */}
-                <Row
-                  label="Shares"
-                  thai="หุ้น"
-                  value={fmtShares(calc.currentShares)}
-                />
+                <Row label="Shares" thai="หุ้น" value={fmtShares(calc.currentShares)} />
                 <Row
                   label="Total shares"
                   thai="หุ้นรวม"
@@ -434,62 +628,53 @@ function Index() {
                   emphasize
                 />
 
-                {/* Avg / share */}
                 <Row
                   label="Avg / share"
                   thai="ต้นทุน/หุ้น"
-                  value={`$${fmt(n(avgCost))}`}
+                  value={money(n(avgCost))}
                 />
                 <Row
                   label="New avg / share"
                   thai="ต้นทุนใหม่/หุ้น"
-                  value={`$${fmt(calc.newAvgCost)}`}
+                  value={money(calc.newAvgCost)}
                   tone={calc.avgChange <= 0 ? "pos" : "neg"}
                   emphasize
                 />
 
-                {/* Total cost */}
-                <Row
-                  label="Total cost"
-                  thai="ต้นทุนรวม"
-                  value={`$${fmt(n(totalCost))}`}
-                />
+                <Row label="Total cost" thai="ต้นทุนรวม" value={money(n(totalCost))} />
                 <Row
                   label="New total cost"
                   thai="ต้นทุนรวมใหม่"
-                  value={`$${fmt(calc.newTotalCost)}`}
+                  value={money(calc.newTotalCost)}
                   emphasize
                 />
 
-                {/* Market value */}
                 <Row
                   label="Market value"
                   thai="มูลค่าตลาด"
-                  value={`$${fmt(calc.currentValue)}`}
+                  value={money(calc.currentValue)}
                 />
                 <Row
                   label="Market value"
                   thai="มูลค่าตลาด"
-                  value={`$${fmt(calc.newMarketValue)}`}
+                  value={money(calc.newMarketValue)}
                   emphasize
                 />
 
-                {/* Unrealized P/L */}
                 <Row
                   label="Unrealized P/L"
                   thai="กำไร/ขาดทุน"
-                  value={`${calc.unrealizedPnl >= 0 ? "+" : ""}$${fmt(calc.unrealizedPnl)} (${calc.unrealizedPct.toFixed(2)}%)`}
+                  value={`${moneySigned(calc.unrealizedPnl)} (${calc.unrealizedPct.toFixed(2)}%)`}
                   tone={calc.unrealizedPnl >= 0 ? "pos" : "neg"}
                 />
                 <Row
                   label="Unrealized P/L"
                   thai="กำไร/ขาดทุน"
-                  value={`${calc.newUnrealizedPnl >= 0 ? "+" : ""}$${fmt(calc.newUnrealizedPnl)} (${calc.newUnrealizedPct.toFixed(2)}%)`}
+                  value={`${moneySigned(calc.newUnrealizedPnl)} (${calc.newUnrealizedPct.toFixed(2)}%)`}
                   tone={calc.newUnrealizedPnl >= 0 ? "pos" : "neg"}
                   emphasize
                 />
 
-                {/* Δ avg — spans both for context */}
                 <div className="col-span-2 rounded-md border border-border/50 bg-background/30 px-3 py-2 text-center">
                   <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
                     Δ Avg / share (ส่วนต่างต้นทุน):
@@ -499,8 +684,7 @@ function Index() {
                       calc.avgChange <= 0 ? "text-emerald-400" : "text-red-400"
                     }`}
                   >
-                    {calc.avgChange >= 0 ? "+" : ""}${fmt(calc.avgChange)} (
-                    {calc.avgChangePct.toFixed(2)}%)
+                    {moneySigned(calc.avgChange)} ({calc.avgChangePct.toFixed(2)}%)
                   </span>
                 </div>
               </div>
@@ -508,10 +692,9 @@ function Index() {
           </div>
         </Card>
 
-        {/* ===== SECTION B — Sell Simulator (separate) ===== */}
-        <Card className="border-border/60 bg-card/40 p-5 backdrop-blur">
+        {/* ===== SECTION B — Sell Simulator ===== */}
+        <Card className="border-border/60 bg-card/40 p-5 backdrop-blur-xl">
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            {/* Sell inputs */}
             <div className="space-y-4">
               <SectionTitle
                 step="3"
@@ -562,7 +745,6 @@ function Index() {
                 </div>
               </div>
 
-              {/* Dedicated Sell button */}
               <Button
                 onClick={() => setSellKey((k) => k + 1)}
                 variant="secondary"
@@ -572,11 +754,10 @@ function Index() {
                 Simulate Sell (คำนวณการขาย)
               </Button>
               <p className="text-center text-[10px] text-muted-foreground">
-                Uses new avg / share = ${fmt(calc.newAvgCost)}
+                Uses new avg / share = {money(calc.newAvgCost)}
               </p>
             </div>
 
-            {/* Sell results */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Sell Result (ผลการขาย)
@@ -586,21 +767,17 @@ function Index() {
                   <TrendingDown className="h-3.5 w-3.5 text-red-400" />
                 )}
                 <span className="ml-auto font-normal normal-case text-[10px] text-muted-foreground">
-                  @ ${fmt(n(sellPrice))}
+                  @ {money(n(sellPrice))}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <Row label="Shares sold" thai="หุ้นที่ขาย" value={fmtShares(sell.ss)} />
-                <Row
-                  label="Proceeds"
-                  thai="เงินที่ได้รับ"
-                  value={`$${fmt(sell.proceeds)}`}
-                />
+                <Row label="Proceeds" thai="เงินที่ได้รับ" value={money(sell.proceeds)} />
                 <Row
                   label="Cost basis"
                   thai="ต้นทุนของหุ้นที่ขาย"
-                  value={`$${fmt(sell.costOfSold)}`}
+                  value={money(sell.costOfSold)}
                 />
                 <Row
                   label="% profit"
@@ -621,7 +798,7 @@ function Index() {
                   Realized P/L (กำไร/ขาดทุนเมื่อขาย)
                 </div>
                 <div className="text-2xl font-bold tabular-nums">
-                  {sell.profit >= 0 ? "+" : ""}${fmt(sell.profit)}
+                  {moneySigned(sell.profit)}
                 </div>
               </div>
             </div>
@@ -629,8 +806,8 @@ function Index() {
         </Card>
 
         <footer className="mt-4 text-center text-[10px] text-muted-foreground">
-          Live prices via Yahoo Finance · ไม่รวมค่าธรรมเนียม/ภาษี · For informational use
-          only
+          Live prices & FX via Yahoo Finance · ไม่รวมค่าธรรมเนียม/ภาษี · For informational
+          use only
         </footer>
       </div>
     </main>
