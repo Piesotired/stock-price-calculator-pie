@@ -17,6 +17,8 @@ import {
   Search,
   ArrowLeftRight,
   Sparkles,
+  Activity,
+  Info,
 } from "lucide-react";
 import { getQuote, searchSymbols, getUsdThb, getTechnicals } from "@/lib/price.functions";
 
