@@ -193,6 +193,50 @@ function Index() {
   const [fxRate, setFxRate] = useState<number | null>(null);
   const [fxLoading, setFxLoading] = useState(false);
 
+  // Technicals
+  type Tech = {
+    price: number;
+    rsi: number | null;
+    ema20: number;
+    ema50: number;
+    ema200: number | null;
+    supports: number[];
+    resistances: number[];
+    trend: "bullish" | "bearish" | "neutral";
+  };
+  const [tech, setTech] = useState<Tech | null>(null);
+  const [techLoading, setTechLoading] = useState(false);
+  const [techErr, setTechErr] = useState<string | null>(null);
+
+  async function loadTech(sym?: string) {
+    const symbol = (sym ?? ticker).trim();
+    if (!symbol) return;
+    setTechLoading(true);
+    setTechErr(null);
+    try {
+      const r = await fetchTech({ data: { symbol } });
+      if (r.ok) {
+        setTech({
+          price: r.price,
+          rsi: r.rsi,
+          ema20: r.ema20,
+          ema50: r.ema50,
+          ema200: r.ema200,
+          supports: r.supports,
+          resistances: r.resistances,
+          trend: r.trend,
+        });
+      } else {
+        setTech(null);
+        setTechErr(r.error);
+      }
+    } catch (e: any) {
+      setTechErr(e?.message ?? "error");
+    } finally {
+      setTechLoading(false);
+    }
+  }
+
   useEffect(() => {
     const root = document.documentElement;
     const had = root.classList.contains("dark");
