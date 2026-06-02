@@ -505,6 +505,7 @@ function Index() {
                     value={avgCost}
                     onChange={setAvgCost}
                     prefix="$"
+                    hint={fxRate ? `≈ ฿${fmt(n(avgCost) * fxRate)}` : undefined}
                   />
                   <NumField
                     label="Total cost"
@@ -512,7 +513,7 @@ function Index() {
                     value={totalCost}
                     onChange={setTotalCost}
                     prefix="$"
-                    hint={`≈ ${fmtShares(n(totalCost) / (n(avgCost) || 1))} shares`}
+                    hint={`≈ ${fmtShares(n(totalCost) / (n(avgCost) || 1))} sh${fxRate ? ` · ฿${fmt(n(totalCost) * fxRate)}` : ""}`}
                   />
                 </div>
               </div>
@@ -528,6 +529,7 @@ function Index() {
                     value={currentPrice}
                     onChange={setCurrentPrice}
                     prefix="$"
+                    hint={fxRate ? `≈ ฿${fmt(n(currentPrice) * fxRate)}` : undefined}
                   />
                   <NumField
                     label="Buy amount"
@@ -535,11 +537,7 @@ function Index() {
                     value={buyUsd}
                     onChange={setBuyUsd}
                     prefix="$"
-                    hint={
-                      ccy === "THB" && fxRate
-                        ? `≈ ฿${fmt(n(buyUsd) * fxRate)}`
-                        : undefined
-                    }
+                    hint={fxRate ? `≈ ฿${fmt(n(buyUsd) * fxRate)}` : undefined}
                   />
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
