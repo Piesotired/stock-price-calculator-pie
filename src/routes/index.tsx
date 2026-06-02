@@ -164,6 +164,7 @@ function Index() {
   const fetchQuote = useServerFn(getQuote);
   const fetchSearch = useServerFn(searchSymbols);
   const fetchFx = useServerFn(getUsdThb);
+  const fetchTech = useServerFn(getTechnicals);
 
   const [ticker, setTicker] = useState("META");
   const [avgCost, setAvgCost] = useState<Num>(597);
