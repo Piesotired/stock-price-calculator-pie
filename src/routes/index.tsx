@@ -18,7 +18,7 @@ import {
   ArrowLeftRight,
   Sparkles,
 } from "lucide-react";
-import { getQuote, searchSymbols, getUsdThb } from "@/lib/price.functions";
+import { getQuote, searchSymbols, getUsdThb, getTechnicals } from "@/lib/price.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
