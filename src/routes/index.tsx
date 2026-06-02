@@ -1,12 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { RefreshCw, Calculator, TrendingUp, TrendingDown } from "lucide-react";
+import {
+  RefreshCw,
+  Calculator,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  LineChart,
+} from "lucide-react";
 import { getQuote } from "@/lib/price.functions";
 
 export const Route = createFileRoute("/")({
@@ -34,23 +41,28 @@ const fmtShares = (v: number) =>
 
 function NumField({
   label,
+  thai,
   value,
   onChange,
   prefix,
   hint,
-  compact,
 }: {
   label: string;
+  thai?: string;
   value: Num;
   onChange: (v: Num) => void;
   prefix?: string;
   hint?: string;
-  compact?: boolean;
 }) {
   return (
     <div className="space-y-1">
-      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-        {label}
+      <Label className="flex items-baseline gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+        <span>{label}</span>
+        {thai && (
+          <span className="normal-case tracking-normal text-[10px] text-muted-foreground/70">
+            ({thai})
+          </span>
+        )}
       </Label>
       <div className="relative">
         {prefix && (
@@ -67,7 +79,7 @@ function NumField({
             const v = e.target.value;
             onChange(v === "" ? "" : parseFloat(v));
           }}
-          className={`${prefix ? "pl-7" : ""} ${compact ? "h-8 text-sm" : "h-9 text-sm"}`}
+          className={`${prefix ? "pl-7" : ""} h-9 bg-background/60 text-sm`}
         />
       </div>
       {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
@@ -77,28 +89,56 @@ function NumField({
 
 function Stat({
   label,
+  thai,
   value,
   tone,
-  small,
 }: {
   label: string;
+  thai?: string;
   value: string;
   tone?: "pos" | "neg";
-  small?: boolean;
 }) {
   const color =
     tone === "pos"
-      ? "text-emerald-600"
+      ? "text-emerald-400"
       : tone === "neg"
-        ? "text-red-600"
+        ? "text-red-400"
         : "text-foreground";
   return (
-    <div className="rounded-md border bg-card/50 px-2.5 py-1.5">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-        {label}
+    <div className="rounded-md border border-border/60 bg-card/60 px-2.5 py-1.5">
+      <div className="flex items-baseline gap-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+        <span>{label}</span>
+        {thai && (
+          <span className="normal-case tracking-normal opacity-70">({thai})</span>
+        )}
       </div>
-      <div className={`${small ? "text-sm" : "text-base"} font-semibold ${color}`}>
-        {value}
+      <div className={`text-sm font-semibold tabular-nums ${color}`}>{value}</div>
+    </div>
+  );
+}
+
+function SectionTitle({
+  step,
+  title,
+  thai,
+  icon,
+}: {
+  step?: string;
+  title: string;
+  thai?: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      {step && (
+        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/15 text-[11px] font-bold text-primary">
+          {step}
+        </span>
+      )}
+      {icon && <span className="text-primary">{icon}</span>}
+      <div className="leading-tight">
+        <div className="text-sm font-semibold">{title}</div>
+        {thai && <div className="text-[10px] text-muted-foreground">{thai}</div>}
       </div>
     </div>
   );
@@ -107,25 +147,27 @@ function Stat({
 function Index() {
   const fetchQuote = useServerFn(getQuote);
 
-  // Position
   const [ticker, setTicker] = useState("META");
   const [avgCost, setAvgCost] = useState<Num>(597);
   const [totalCost, setTotalCost] = useState<Num>(69.93);
-
-  // Market
   const [currentPrice, setCurrentPrice] = useState<Num>(610);
   const [buyUsd, setBuyUsd] = useState<Num>(50);
-
-  // Sell
   const [sellPrice, setSellPrice] = useState<Num>(620);
   const [sellShares, setSellShares] = useState<Num>(0);
 
-  // Sync state
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<{ ok: boolean; text: string } | null>(null);
-
-  // Recalc trigger (calculator button) — increments to force re-eval
   const [recalcKey, setRecalcKey] = useState(0);
+
+  // Force dark mode for this page
+  useEffect(() => {
+    const root = document.documentElement;
+    const had = root.classList.contains("dark");
+    root.classList.add("dark");
+    return () => {
+      if (!had) root.classList.remove("dark");
+    };
+  }, []);
 
   async function handleSync() {
     if (!ticker.trim()) return;
@@ -137,7 +179,7 @@ function Index() {
         setCurrentPrice(Number(res.price.toFixed(4)));
         setSyncMsg({ ok: true, text: `${res.symbol} ${res.currency} ${fmt(res.price)}` });
       } else {
-        setSyncMsg({ ok: false, text: `Sync failed: ${res.error}. Enter manually.` });
+        setSyncMsg({ ok: false, text: `Sync failed: ${res.error}` });
       }
     } catch (e: any) {
       setSyncMsg({ ok: false, text: `Sync failed: ${e?.message ?? "error"}` });
@@ -196,25 +238,31 @@ function Index() {
   }, [sellPrice, sellShares, calc.totalShares, calc.newAvgCost]);
 
   return (
-    <main className="h-screen overflow-hidden bg-gradient-to-br from-background via-background to-muted/40">
-      <div className="mx-auto flex h-full max-w-[1400px] flex-col px-4 py-3">
+    <main className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 text-foreground">
+      <div className="mx-auto max-w-[1400px] px-4 py-5">
         {/* Header */}
-        <header className="mb-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="rounded-md bg-primary/10 p-1.5 text-primary">
+        <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="rounded-lg bg-primary/15 p-2 text-primary ring-1 ring-primary/20">
               <Calculator className="h-4 w-4" />
             </div>
             <div>
-              <h1 className="text-base font-semibold leading-tight">Cost Basis Calculator</h1>
+              <h1 className="text-base font-semibold leading-tight">
+                Cost Basis Calculator
+              </h1>
               <p className="text-[11px] text-muted-foreground">
-                Live price sync · recalculate average cost · simulate sell profit
+                เครื่องคำนวณต้นทุนเฉลี่ย · ซิงค์ราคาตลาด · จำลองการขาย
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {syncMsg && (
               <span
-                className={`text-[11px] ${syncMsg.ok ? "text-emerald-600" : "text-red-600"}`}
+                className={`rounded-md border px-2 py-0.5 text-[11px] ${
+                  syncMsg.ok
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                    : "border-red-500/30 bg-red-500/10 text-red-400"
+                }`}
               >
                 {syncMsg.text}
               </span>
@@ -222,131 +270,103 @@ function Index() {
             <Button
               size="sm"
               onClick={() => setRecalcKey((k) => k + 1)}
-              className="h-8 gap-1.5"
+              className="h-9 gap-1.5"
             >
               <Calculator className="h-3.5 w-3.5" />
-              Calculate
+              Calculate (คำนวณ)
             </Button>
           </div>
         </header>
 
-        {/* 3-column grid */}
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 md:grid-cols-3">
-          {/* Column 1 — Position */}
-          <Card className="flex min-h-0 flex-col gap-3 p-3">
-            <div>
-              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                1 · Existing Position
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                หุ้นที่คุณถืออยู่ตอนนี้
-              </p>
-            </div>
-            <div className="space-y-2.5">
-              <div className="space-y-1">
-                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Ticker
-                </Label>
-                <div className="flex gap-1.5">
-                  <Input
-                    value={ticker}
-                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                    className="h-8 text-sm font-semibold"
-                  />
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={handleSync}
-                    disabled={syncing}
-                    className="h-8 gap-1.5 px-2.5"
-                    title="Sync live market price"
-                  >
-                    <RefreshCw
-                      className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`}
-                    />
-                    Sync
-                  </Button>
-                </div>
-              </div>
-              <NumField
-                label="ต้นทุนต่อหุ้น (avg / share)"
-                value={avgCost}
-                onChange={setAvgCost}
-                prefix="$"
-                compact
-              />
-              <NumField
-                label="ต้นทุนรวม (total cost)"
-                value={totalCost}
-                onChange={setTotalCost}
-                prefix="$"
-                hint={`= ${fmtShares(n(totalCost) / (n(avgCost) || 1))} shares`}
-                compact
-              />
-            </div>
+        {/* Two main boxes */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {/* ===== BOX 1 — Inputs ===== */}
+          <Card className="flex flex-col gap-4 border-border/60 bg-card/40 p-5 backdrop-blur">
+            <SectionTitle
+              step="1"
+              title="Your Inputs"
+              thai="กรอกข้อมูลของคุณ"
+              icon={<Wallet className="h-4 w-4" />}
+            />
 
-            <Separator />
-
-            <div>
-              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Current P/L
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-1.5">
-                <Stat
-                  label="Shares"
-                  value={fmtShares(calc.currentShares)}
-                  small
+            {/* Ticker */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Ticker (สัญลักษณ์หุ้น)
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  value={ticker}
+                  onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                  className="h-9 bg-background/60 text-sm font-semibold tracking-wide"
+                  placeholder="e.g. META"
                 />
-                <Stat
-                  label="Market value"
-                  value={`$${fmt(calc.currentValue)}`}
-                  small
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className="h-9 gap-1.5 px-3"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+                  Sync
+                </Button>
+              </div>
+            </div>
+
+            {/* Existing position */}
+            <div className="rounded-lg border border-border/50 bg-background/30 p-3">
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Existing Position (หุ้นที่ถืออยู่)
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <NumField
+                  label="Avg / share"
+                  thai="ต้นทุนต่อหุ้น"
+                  value={avgCost}
+                  onChange={setAvgCost}
+                  prefix="$"
                 />
-                <div className="col-span-2">
-                  <Stat
-                    label="Unrealized P/L"
-                    value={`${calc.unrealizedPnl >= 0 ? "+" : ""}$${fmt(calc.unrealizedPnl)}  (${calc.unrealizedPct.toFixed(2)}%)`}
-                    tone={calc.unrealizedPnl >= 0 ? "pos" : "neg"}
-                  />
-                </div>
+                <NumField
+                  label="Total cost"
+                  thai="ต้นทุนรวม"
+                  value={totalCost}
+                  onChange={setTotalCost}
+                  prefix="$"
+                  hint={`≈ ${fmtShares(n(totalCost) / (n(avgCost) || 1))} shares (หุ้น)`}
+                />
               </div>
             </div>
-          </Card>
 
-          {/* Column 2 — Buy more */}
-          <Card className="flex min-h-0 flex-col gap-3 p-3">
-            <div>
-              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                2 · Market & Buy More
+            {/* Buy more */}
+            <div className="rounded-lg border border-border/50 bg-background/30 p-3">
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Buy More (ซื้อเพิ่ม)
               </div>
-              <p className="text-[10px] text-muted-foreground">
-                ราคาตลาด + จำนวนเงินที่จะซื้อเพิ่ม
-              </p>
-            </div>
-
-            <div className="space-y-2.5">
-              <NumField
-                label="Current price ($/share)"
-                value={currentPrice}
-                onChange={setCurrentPrice}
-                prefix="$"
-                compact
-                hint="Auto-filled via Sync · editable as manual override"
-              />
-              <NumField
-                label="Buy amount (USD)"
-                value={buyUsd}
-                onChange={setBuyUsd}
-                prefix="$"
-                compact
-              />
-              <div className="flex flex-wrap gap-1">
+              <div className="grid grid-cols-2 gap-3">
+                <NumField
+                  label="Current price"
+                  thai="ราคาปัจจุบัน"
+                  value={currentPrice}
+                  onChange={setCurrentPrice}
+                  prefix="$"
+                  hint="Sync หรือกรอกเอง"
+                />
+                <NumField
+                  label="Buy amount"
+                  thai="จำนวนเงินที่ซื้อ"
+                  value={buyUsd}
+                  onChange={setBuyUsd}
+                  prefix="$"
+                />
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {[50, 100, 250, 500, 1000].map((v) => (
                   <Button
                     key={v}
                     size="sm"
                     variant="outline"
-                    className="h-6 px-2 text-[11px]"
+                    className="h-7 px-2 text-[11px]"
                     onClick={() => setBuyUsd(v)}
                   >
                     ${v}
@@ -355,68 +375,34 @@ function Index() {
               </div>
             </div>
 
-            <Separator />
-
-            <div>
-              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                After buying ${fmt(n(buyUsd))} @ ${fmt(n(currentPrice))}
+            {/* Sell simulator inputs */}
+            <div className="rounded-lg border border-border/50 bg-background/30 p-3">
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Sell Simulator (จำลองการขาย)
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-1.5">
-                <Stat label="Shares bought" value={fmtShares(calc.newShares)} small />
-                <Stat label="Total shares" value={fmtShares(calc.totalShares)} small />
-                <Stat label="New total" value={`$${fmt(calc.newTotalCost)}`} small />
-                <Stat label="New avg" value={`$${fmt(calc.newAvgCost)}`} small />
-                <div className="col-span-2">
-                  <Stat
-                    label="Δ avg / share"
-                    value={`${calc.avgChange >= 0 ? "+" : ""}$${fmt(calc.avgChange)}  (${calc.avgChangePct.toFixed(2)}%)`}
-                    tone={calc.avgChange <= 0 ? "pos" : "neg"}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Stat
-                    label="Unrealized P/L (new)"
-                    value={`${calc.newUnrealizedPnl >= 0 ? "+" : ""}$${fmt(calc.newUnrealizedPnl)}  (${calc.newUnrealizedPct.toFixed(2)}%)`}
-                    tone={calc.newUnrealizedPnl >= 0 ? "pos" : "neg"}
-                  />
-                </div>
+              <div className="grid grid-cols-2 gap-3">
+                <NumField
+                  label="Sell price"
+                  thai="ราคาขาย"
+                  value={sellPrice}
+                  onChange={setSellPrice}
+                  prefix="$"
+                />
+                <NumField
+                  label="Shares to sell"
+                  thai="จำนวนหุ้นที่ขาย"
+                  value={sellShares}
+                  onChange={setSellShares}
+                  hint={`ว่าง = ขายทั้งหมด (${fmtShares(calc.totalShares)})`}
+                />
               </div>
-            </div>
-          </Card>
-
-          {/* Column 3 — Sell simulator */}
-          <Card className="flex min-h-0 flex-col gap-3 p-3">
-            <div>
-              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                3 · Sell Simulator
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                คิดจาก new avg ${fmt(calc.newAvgCost)}
-              </p>
-            </div>
-
-            <div className="space-y-2.5">
-              <NumField
-                label="Sell price ($/share)"
-                value={sellPrice}
-                onChange={setSellPrice}
-                prefix="$"
-                compact
-              />
-              <NumField
-                label="Shares to sell"
-                value={sellShares}
-                onChange={setSellShares}
-                hint={`ว่าง / 0 = ขายทั้งหมด (${fmtShares(calc.totalShares)})`}
-                compact
-              />
-              <div className="flex flex-wrap gap-1">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {[0.25, 0.5, 0.75, 1].map((p) => (
                   <Button
                     key={p}
                     size="sm"
                     variant="outline"
-                    className="h-6 px-2 text-[11px]"
+                    className="h-7 px-2 text-[11px]"
                     onClick={() =>
                       setSellShares(Number((calc.totalShares * p).toFixed(8)))
                     }
@@ -427,47 +413,159 @@ function Index() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 px-2 text-[11px]"
+                  className="h-7 px-2 text-[11px]"
                   onClick={() => setSellShares(0)}
                 >
                   Reset
                 </Button>
               </div>
             </div>
+          </Card>
 
-            <Separator />
+          {/* ===== BOX 2 — Results ===== */}
+          <Card className="flex flex-col gap-4 border-border/60 bg-card/40 p-5 backdrop-blur">
+            <SectionTitle
+              step="2"
+              title="Results"
+              thai="ผลการคำนวณ"
+              icon={<LineChart className="h-4 w-4" />}
+            />
 
-            <div>
-              <div className="mb-2 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Result
-                {sell.profit >= 0 ? (
-                  <TrendingUp className="h-3 w-3 text-emerald-600" />
-                ) : (
-                  <TrendingDown className="h-3 w-3 text-red-600" />
-                )}
+            {/* Current vs After side by side */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Current */}
+              <div className="rounded-lg border border-border/50 bg-background/30 p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Current (ปัจจุบัน)
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">
+                    @ ${fmt(n(currentPrice))}
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  <Stat
+                    label="Shares"
+                    thai="หุ้น"
+                    value={fmtShares(calc.currentShares)}
+                  />
+                  <Stat
+                    label="Avg / share"
+                    thai="ต้นทุน/หุ้น"
+                    value={`$${fmt(n(avgCost))}`}
+                  />
+                  <Stat
+                    label="Total cost"
+                    thai="ต้นทุนรวม"
+                    value={`$${fmt(n(totalCost))}`}
+                  />
+                  <Stat
+                    label="Market value"
+                    thai="มูลค่าตลาด"
+                    value={`$${fmt(calc.currentValue)}`}
+                  />
+                  <Stat
+                    label="Unrealized P/L"
+                    thai="กำไร/ขาดทุน"
+                    value={`${calc.unrealizedPnl >= 0 ? "+" : ""}$${fmt(calc.unrealizedPnl)} (${calc.unrealizedPct.toFixed(2)}%)`}
+                    tone={calc.unrealizedPnl >= 0 ? "pos" : "neg"}
+                  />
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                <Stat label="Shares sold" value={fmtShares(sell.ss)} small />
-                <Stat label="Proceeds" value={`$${fmt(sell.proceeds)}`} small />
-                <Stat label="Cost basis" value={`$${fmt(sell.costOfSold)}`} small />
+
+              {/* After */}
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+                    After Buy (หลังซื้อเพิ่ม)
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">
+                    +${fmt(n(buyUsd))}
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  <Stat
+                    label="Shares bought"
+                    thai="หุ้นที่ซื้อ"
+                    value={fmtShares(calc.newShares)}
+                  />
+                  <Stat
+                    label="Total shares"
+                    thai="หุ้นรวม"
+                    value={fmtShares(calc.totalShares)}
+                  />
+                  <Stat
+                    label="New avg / share"
+                    thai="ต้นทุนใหม่/หุ้น"
+                    value={`$${fmt(calc.newAvgCost)}`}
+                    tone={calc.avgChange <= 0 ? "pos" : "neg"}
+                  />
+                  <Stat
+                    label="New total cost"
+                    thai="ต้นทุนรวมใหม่"
+                    value={`$${fmt(calc.newTotalCost)}`}
+                  />
+                  <Stat
+                    label="Δ avg / share"
+                    thai="ส่วนต่างต้นทุน"
+                    value={`${calc.avgChange >= 0 ? "+" : ""}$${fmt(calc.avgChange)} (${calc.avgChangePct.toFixed(2)}%)`}
+                    tone={calc.avgChange <= 0 ? "pos" : "neg"}
+                  />
+                  <Stat
+                    label="Unrealized P/L"
+                    thai="กำไร/ขาดทุน"
+                    value={`${calc.newUnrealizedPnl >= 0 ? "+" : ""}$${fmt(calc.newUnrealizedPnl)} (${calc.newUnrealizedPct.toFixed(2)}%)`}
+                    tone={calc.newUnrealizedPnl >= 0 ? "pos" : "neg"}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Separator className="bg-border/60" />
+
+            {/* Sell result */}
+            <div>
+              <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Sell Result (ผลการขาย)
+                {sell.profit >= 0 ? (
+                  <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
+                ) : (
+                  <TrendingDown className="h-3.5 w-3.5 text-red-400" />
+                )}
+                <span className="ml-auto text-[10px] font-normal normal-case text-muted-foreground">
+                  @ ${fmt(n(sellPrice))} · จาก new avg ${fmt(calc.newAvgCost)}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Stat label="Shares sold" thai="หุ้นที่ขาย" value={fmtShares(sell.ss)} />
+                <Stat
+                  label="Proceeds"
+                  thai="เงินที่ได้รับ"
+                  value={`$${fmt(sell.proceeds)}`}
+                />
+                <Stat
+                  label="Cost basis"
+                  thai="ต้นทุนของหุ้นที่ขาย"
+                  value={`$${fmt(sell.costOfSold)}`}
+                />
                 <Stat
                   label="% profit"
+                  thai="กำไร %"
                   value={`${sell.profitPct.toFixed(2)}%`}
                   tone={sell.profit >= 0 ? "pos" : "neg"}
-                  small
                 />
                 <div className="col-span-2">
                   <div
-                    className={`rounded-md border px-3 py-2 ${
+                    className={`rounded-lg border px-4 py-3 ${
                       sell.profit >= 0
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-400"
-                        : "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400"
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                        : "border-red-500/40 bg-red-500/10 text-red-300"
                     }`}
                   >
-                    <div className="text-[10px] uppercase tracking-wide opacity-80">
-                      Realized P/L
+                    <div className="text-[10px] uppercase tracking-wider opacity-80">
+                      Realized P/L (กำไร/ขาดทุนเมื่อขาย)
                     </div>
-                    <div className="text-lg font-bold">
+                    <div className="text-2xl font-bold tabular-nums">
                       {sell.profit >= 0 ? "+" : ""}${fmt(sell.profit)}
                     </div>
                   </div>
@@ -477,8 +575,9 @@ function Index() {
           </Card>
         </div>
 
-        <footer className="mt-2 text-center text-[10px] text-muted-foreground">
-          Live prices via Yahoo Finance · ไม่รวมค่าธรรมเนียม/ภาษี · For informational use only
+        <footer className="mt-4 text-center text-[10px] text-muted-foreground">
+          Live prices via Yahoo Finance · ไม่รวมค่าธรรมเนียม/ภาษี · For informational use
+          only
         </footer>
       </div>
     </main>
