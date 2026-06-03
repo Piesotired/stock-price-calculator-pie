@@ -739,6 +739,227 @@ function Index() {
           </div>
         </Card>
 
+
+        {/* ===== SECTION C — Technical Analysis ===== */}
+        <Card className="mt-4 border-border/60 bg-card/40 p-5 backdrop-blur-xl">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <SectionTitle
+              step="4"
+              title="Technical Snapshot"
+              thai="บทวิเคราะห์ทางเทคนิค (คร่าวๆ)"
+              icon={<Activity className="h-4 w-4" />}
+            />
+            <div className="flex items-center gap-2">
+              {tech && (
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                    tech.trend === "bullish"
+                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                      : tech.trend === "bearish"
+                        ? "border-red-500/40 bg-red-500/10 text-red-300"
+                        : "border-border bg-muted/30 text-muted-foreground"
+                  }`}
+                >
+                  {tech.trend === "bullish"
+                    ? "Bullish · ขาขึ้น"
+                    : tech.trend === "bearish"
+                      ? "Bearish · ขาลง"
+                      : "Sideways · ออกข้าง"}
+                </span>
+              )}
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => loadTech()}
+                disabled={techLoading}
+                className="h-8 gap-1.5 px-2.5 text-xs"
+              >
+                <RefreshCw className={`h-3 w-3 ${techLoading ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            </div>
+          </div>
+
+          {techErr && (
+            <div className="mb-3 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] text-red-300">
+              {techErr}
+            </div>
+          )}
+
+          {!tech && !techErr && (
+            <div className="py-8 text-center text-xs text-muted-foreground">
+              {techLoading ? "Loading analysis…" : "กดปุ่ม Sync หรือ Refresh"}
+            </div>
+          )}
+
+          {tech && (
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+              {/* Support */}
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-emerald-300">
+                  Support (แนวรับ)
+                </div>
+                <div className="space-y-1.5">
+                  {tech.supports.length === 0 && (
+                    <div className="text-[11px] text-muted-foreground">—</div>
+                  )}
+                  {tech.supports.map((v, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between rounded bg-background/40 px-2 py-1"
+                    >
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        S{i + 1}
+                      </span>
+                      <span className="text-sm font-semibold tabular-nums text-emerald-300">
+                        {money(v)}
+                        <span className="ml-1 text-[10px] opacity-70">
+                          ({(((v - tech.price) / tech.price) * 100).toFixed(2)}%)
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Price / EMA / RSI */}
+              <div className="rounded-lg border border-border/50 bg-background/30 p-3">
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Indicators (ตัวชี้วัด)
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between rounded bg-background/40 px-2 py-1">
+                    <span className="text-[10px] uppercase text-muted-foreground">Price</span>
+                    <span className="text-sm font-semibold tabular-nums">{money(tech.price)}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded bg-background/40 px-2 py-1">
+                    <span className="text-[10px] uppercase text-muted-foreground">EMA 20</span>
+                    <span
+                      className={`text-sm font-semibold tabular-nums ${
+                        tech.price >= tech.ema20 ? "text-emerald-400" : "text-red-400"
+                      }`}
+                    >
+                      {money(tech.ema20)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between rounded bg-background/40 px-2 py-1">
+                    <span className="text-[10px] uppercase text-muted-foreground">EMA 50</span>
+                    <span
+                      className={`text-sm font-semibold tabular-nums ${
+                        tech.price >= tech.ema50 ? "text-emerald-400" : "text-red-400"
+                      }`}
+                    >
+                      {money(tech.ema50)}
+                    </span>
+                  </div>
+                  {tech.ema200 && (
+                    <div className="flex items-center justify-between rounded bg-background/40 px-2 py-1">
+                      <span className="text-[10px] uppercase text-muted-foreground">EMA 200</span>
+                      <span
+                        className={`text-sm font-semibold tabular-nums ${
+                          tech.price >= tech.ema200 ? "text-emerald-400" : "text-red-400"
+                        }`}
+                      >
+                        {money(tech.ema200)}
+                      </span>
+                    </div>
+                  )}
+                  {tech.rsi !== null && (
+                    <div className="flex items-center justify-between rounded bg-background/40 px-2 py-1">
+                      <span className="text-[10px] uppercase text-muted-foreground">RSI 14</span>
+                      <span
+                        className={`text-sm font-semibold tabular-nums ${
+                          tech.rsi >= 70
+                            ? "text-red-400"
+                            : tech.rsi <= 30
+                              ? "text-emerald-400"
+                              : "text-foreground"
+                        }`}
+                      >
+                        {tech.rsi.toFixed(1)}{" "}
+                        <span className="text-[10px] opacity-70">
+                          {tech.rsi >= 70
+                            ? "Overbought"
+                            : tech.rsi <= 30
+                              ? "Oversold"
+                              : "Neutral"}
+                        </span>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Resistance */}
+              <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3">
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-red-300">
+                  Resistance (แนวต้าน)
+                </div>
+                <div className="space-y-1.5">
+                  {tech.resistances.length === 0 && (
+                    <div className="text-[11px] text-muted-foreground">—</div>
+                  )}
+                  {tech.resistances.map((v, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between rounded bg-background/40 px-2 py-1"
+                    >
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        R{i + 1}
+                      </span>
+                      <span className="text-sm font-semibold tabular-nums text-red-300">
+                        {money(v)}
+                        <span className="ml-1 text-[10px] opacity-70">
+                          (+{(((v - tech.price) / tech.price) * 100).toFixed(2)}%)
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* Glossary */}
+          <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2">
+            <div className="rounded-md border border-border/40 bg-background/20 p-2.5 text-[11px] leading-relaxed">
+              <div className="mb-0.5 flex items-center gap-1 font-semibold text-foreground">
+                <Info className="h-3 w-3 text-primary" /> แนวรับ (Support)
+              </div>
+              <p className="text-muted-foreground">
+                ราคาที่ในอดีตหุ้นมัก "เด้งกลับขึ้น" เพราะมีคนเข้าซื้อเยอะ
+                ถ้าราคาหลุดแนวรับสำคัญ มักหมายถึงสัญญาณขาลงต่อ
+              </p>
+            </div>
+            <div className="rounded-md border border-border/40 bg-background/20 p-2.5 text-[11px] leading-relaxed">
+              <div className="mb-0.5 flex items-center gap-1 font-semibold text-foreground">
+                <Info className="h-3 w-3 text-primary" /> แนวต้าน (Resistance)
+              </div>
+              <p className="text-muted-foreground">
+                ราคาที่หุ้นมัก "ขึ้นไปแล้วโดนกดลง" เพราะมีคนขายทำกำไร
+                ถ้าทะลุแนวต้านได้ มักเป็นสัญญาณว่าจะไปต่อ
+              </p>
+            </div>
+            <div className="rounded-md border border-border/40 bg-background/20 p-2.5 text-[11px] leading-relaxed">
+              <div className="mb-0.5 flex items-center gap-1 font-semibold text-foreground">
+                <Info className="h-3 w-3 text-primary" /> RSI (Relative Strength Index)
+              </div>
+              <p className="text-muted-foreground">
+                ค่า 0–100 วัดแรงซื้อแรงขาย · <b>เกิน 70</b> = ซื้อมากไป (อาจย่อ) ·{" "}
+                <b>ต่ำกว่า 30</b> = ขายมากไป (อาจเด้ง) · 30–70 = ปกติ
+              </p>
+            </div>
+            <div className="rounded-md border border-border/40 bg-background/20 p-2.5 text-[11px] leading-relaxed">
+              <div className="mb-0.5 flex items-center gap-1 font-semibold text-foreground">
+                <Info className="h-3 w-3 text-primary" /> EMA (Exponential Moving Average)
+              </div>
+              <p className="text-muted-foreground">
+                เส้นค่าเฉลี่ยราคาแบบให้น้ำหนักล่าสุดมากกว่า · <b>ราคา &gt; EMA</b> =
+                แนวโน้มขึ้น · EMA20 สั้น, EMA50 กลาง, EMA200 ยาว ใช้ดูเทรนด์รวม
+              </p>
+            </div>
+          </div>
+        </Card>
         {/* ===== SECTION B — Sell Simulator ===== */}
         <Card className="border-border/60 bg-card/40 p-5 backdrop-blur-xl">
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -852,227 +1073,6 @@ function Index() {
           </div>
         </Card>
 
-
-        {/* ===== SECTION C — Technical Analysis ===== */}
-        <Card className="mt-4 border-border/60 bg-card/40 p-5 backdrop-blur-xl">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <SectionTitle
-              step="4"
-              title="Technical Snapshot"
-              thai="บทวิเคราะห์ทางเทคนิค (คร่าวๆ)"
-              icon={<Activity className="h-4 w-4" />}
-            />
-            <div className="flex items-center gap-2">
-              {tech && (
-                <span
-                  className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                    tech.trend === "bullish"
-                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                      : tech.trend === "bearish"
-                        ? "border-red-500/40 bg-red-500/10 text-red-300"
-                        : "border-border bg-muted/30 text-muted-foreground"
-                  }`}
-                >
-                  {tech.trend === "bullish"
-                    ? "Bullish · ขาขึ้น"
-                    : tech.trend === "bearish"
-                      ? "Bearish · ขาลง"
-                      : "Sideways · ออกข้าง"}
-                </span>
-              )}
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => loadTech()}
-                disabled={techLoading}
-                className="h-8 gap-1.5 px-2.5 text-xs"
-              >
-                <RefreshCw className={`h-3 w-3 ${techLoading ? "animate-spin" : ""}`} />
-                Refresh
-              </Button>
-            </div>
-          </div>
-
-          {techErr && (
-            <div className="mb-3 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] text-red-300">
-              {techErr}
-            </div>
-          )}
-
-          {!tech && !techErr && (
-            <div className="py-8 text-center text-xs text-muted-foreground">
-              {techLoading ? "Loading analysis…" : "กดปุ่ม Sync หรือ Refresh"}
-            </div>
-          )}
-
-          {tech && (
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-              {/* Resistance */}
-              <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3">
-                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-red-300">
-                  Resistance (แนวต้าน)
-                </div>
-                <div className="space-y-1.5">
-                  {tech.resistances.length === 0 && (
-                    <div className="text-[11px] text-muted-foreground">—</div>
-                  )}
-                  {tech.resistances.map((v, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between rounded bg-background/40 px-2 py-1"
-                    >
-                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                        R{i + 1}
-                      </span>
-                      <span className="text-sm font-semibold tabular-nums text-red-300">
-                        {money(v)}
-                        <span className="ml-1 text-[10px] opacity-70">
-                          (+{(((v - tech.price) / tech.price) * 100).toFixed(2)}%)
-                        </span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Price / EMA / RSI */}
-              <div className="rounded-lg border border-border/50 bg-background/30 p-3">
-                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Indicators (ตัวชี้วัด)
-                </div>
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between rounded bg-background/40 px-2 py-1">
-                    <span className="text-[10px] uppercase text-muted-foreground">Price</span>
-                    <span className="text-sm font-semibold tabular-nums">{money(tech.price)}</span>
-                  </div>
-                  <div className="flex items-center justify-between rounded bg-background/40 px-2 py-1">
-                    <span className="text-[10px] uppercase text-muted-foreground">EMA 20</span>
-                    <span
-                      className={`text-sm font-semibold tabular-nums ${
-                        tech.price >= tech.ema20 ? "text-emerald-400" : "text-red-400"
-                      }`}
-                    >
-                      {money(tech.ema20)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between rounded bg-background/40 px-2 py-1">
-                    <span className="text-[10px] uppercase text-muted-foreground">EMA 50</span>
-                    <span
-                      className={`text-sm font-semibold tabular-nums ${
-                        tech.price >= tech.ema50 ? "text-emerald-400" : "text-red-400"
-                      }`}
-                    >
-                      {money(tech.ema50)}
-                    </span>
-                  </div>
-                  {tech.ema200 && (
-                    <div className="flex items-center justify-between rounded bg-background/40 px-2 py-1">
-                      <span className="text-[10px] uppercase text-muted-foreground">EMA 200</span>
-                      <span
-                        className={`text-sm font-semibold tabular-nums ${
-                          tech.price >= tech.ema200 ? "text-emerald-400" : "text-red-400"
-                        }`}
-                      >
-                        {money(tech.ema200)}
-                      </span>
-                    </div>
-                  )}
-                  {tech.rsi !== null && (
-                    <div className="flex items-center justify-between rounded bg-background/40 px-2 py-1">
-                      <span className="text-[10px] uppercase text-muted-foreground">RSI 14</span>
-                      <span
-                        className={`text-sm font-semibold tabular-nums ${
-                          tech.rsi >= 70
-                            ? "text-red-400"
-                            : tech.rsi <= 30
-                              ? "text-emerald-400"
-                              : "text-foreground"
-                        }`}
-                      >
-                        {tech.rsi.toFixed(1)}{" "}
-                        <span className="text-[10px] opacity-70">
-                          {tech.rsi >= 70
-                            ? "Overbought"
-                            : tech.rsi <= 30
-                              ? "Oversold"
-                              : "Neutral"}
-                        </span>
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Support */}
-              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
-                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-emerald-300">
-                  Support (แนวรับ)
-                </div>
-                <div className="space-y-1.5">
-                  {tech.supports.length === 0 && (
-                    <div className="text-[11px] text-muted-foreground">—</div>
-                  )}
-                  {tech.supports.map((v, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between rounded bg-background/40 px-2 py-1"
-                    >
-                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                        S{i + 1}
-                      </span>
-                      <span className="text-sm font-semibold tabular-nums text-emerald-300">
-                        {money(v)}
-                        <span className="ml-1 text-[10px] opacity-70">
-                          ({(((v - tech.price) / tech.price) * 100).toFixed(2)}%)
-                        </span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Glossary */}
-          <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2">
-            <div className="rounded-md border border-border/40 bg-background/20 p-2.5 text-[11px] leading-relaxed">
-              <div className="mb-0.5 flex items-center gap-1 font-semibold text-foreground">
-                <Info className="h-3 w-3 text-primary" /> แนวรับ (Support)
-              </div>
-              <p className="text-muted-foreground">
-                ราคาที่ในอดีตหุ้นมัก "เด้งกลับขึ้น" เพราะมีคนเข้าซื้อเยอะ
-                ถ้าราคาหลุดแนวรับสำคัญ มักหมายถึงสัญญาณขาลงต่อ
-              </p>
-            </div>
-            <div className="rounded-md border border-border/40 bg-background/20 p-2.5 text-[11px] leading-relaxed">
-              <div className="mb-0.5 flex items-center gap-1 font-semibold text-foreground">
-                <Info className="h-3 w-3 text-primary" /> แนวต้าน (Resistance)
-              </div>
-              <p className="text-muted-foreground">
-                ราคาที่หุ้นมัก "ขึ้นไปแล้วโดนกดลง" เพราะมีคนขายทำกำไร
-                ถ้าทะลุแนวต้านได้ มักเป็นสัญญาณว่าจะไปต่อ
-              </p>
-            </div>
-            <div className="rounded-md border border-border/40 bg-background/20 p-2.5 text-[11px] leading-relaxed">
-              <div className="mb-0.5 flex items-center gap-1 font-semibold text-foreground">
-                <Info className="h-3 w-3 text-primary" /> RSI (Relative Strength Index)
-              </div>
-              <p className="text-muted-foreground">
-                ค่า 0–100 วัดแรงซื้อแรงขาย · <b>เกิน 70</b> = ซื้อมากไป (อาจย่อ) ·{" "}
-                <b>ต่ำกว่า 30</b> = ขายมากไป (อาจเด้ง) · 30–70 = ปกติ
-              </p>
-            </div>
-            <div className="rounded-md border border-border/40 bg-background/20 p-2.5 text-[11px] leading-relaxed">
-              <div className="mb-0.5 flex items-center gap-1 font-semibold text-foreground">
-                <Info className="h-3 w-3 text-primary" /> EMA (Exponential Moving Average)
-              </div>
-              <p className="text-muted-foreground">
-                เส้นค่าเฉลี่ยราคาแบบให้น้ำหนักล่าสุดมากกว่า · <b>ราคา &gt; EMA</b> =
-                แนวโน้มขึ้น · EMA20 สั้น, EMA50 กลาง, EMA200 ยาว ใช้ดูเทรนด์รวม
-              </p>
-            </div>
-          </div>
-        </Card>
 
         <footer className="mt-4 text-center text-[10px] text-muted-foreground">
           Live prices & FX via Yahoo Finance · ไม่รวมค่าธรรมเนียม/ภาษี · For informational
