@@ -182,6 +182,40 @@ function Index() {
   const [buyKey, setBuyKey] = useState(0);
   const [sellKey, setSellKey] = useState(0);
 
+  // Favorites (saved with cost basis)
+  type Fav = { symbol: string; avgCost: number; totalCost: number };
+  const [favs, setFavs] = useState<Fav[]>([]);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("cb_favs");
+      if (raw) setFavs(JSON.parse(raw));
+    } catch {/* ignore */}
+  }, []);
+  function persistFavs(next: Fav[]) {
+    setFavs(next);
+    try { localStorage.setItem("cb_favs", JSON.stringify(next)); } catch {/* ignore */}
+  }
+  function saveFav() {
+    const sym = ticker.trim().toUpperCase();
+    if (!sym) return;
+    const next = [
+      { symbol: sym, avgCost: n(avgCost), totalCost: n(totalCost) },
+      ...favs.filter((f) => f.symbol !== sym),
+    ].slice(0, 20);
+    persistFavs(next);
+  }
+  function loadFav(f: Fav) {
+    setTicker(f.symbol);
+    setAvgCost(f.avgCost);
+    setTotalCost(f.totalCost);
+    setShowSug(false);
+    handleSync(f.symbol);
+  }
+  function removeFav(symbol: string) {
+    persistFavs(favs.filter((f) => f.symbol !== symbol));
+  }
+  const isFav = favs.some((f) => f.symbol === ticker.trim().toUpperCase());
+
   // Ticker autocomplete
   const [suggestions, setSuggestions] = useState<
     { symbol: string; name: string; exch: string; type: string }[]
