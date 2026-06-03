@@ -617,6 +617,17 @@ function Index() {
                     />
                     Sync
                   </Button>
+                  <Button
+                    size="sm"
+                    variant={isFav ? "default" : "outline"}
+                    onClick={saveFav}
+                    className="h-9 gap-1.5 px-2.5"
+                    title={isFav ? "Update favorite with current cost" : "Save to favorites"}
+                  >
+                    <Star
+                      className={`h-3.5 w-3.5 ${isFav ? "fill-amber-300 text-amber-300" : ""}`}
+                    />
+                  </Button>
                 </div>
               </div>
 
