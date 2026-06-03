@@ -499,7 +499,48 @@ function Index() {
           )}
         </header>
 
+        {/* Favorites bar */}
+        {favs.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-1.5 rounded-lg border border-border/60 bg-card/40 px-3 py-2 backdrop-blur-xl">
+            <span className="mr-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <Star className="h-3 w-3 fill-amber-300 text-amber-300" /> Favs
+            </span>
+            {favs.map((f) => {
+              const active = f.symbol === ticker.trim().toUpperCase();
+              return (
+                <div
+                  key={f.symbol}
+                  className={`group flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition ${
+                    active
+                      ? "border-primary/60 bg-primary/20 text-primary"
+                      : "border-border/60 bg-background/40 hover:border-primary/40 hover:bg-primary/10"
+                  }`}
+                >
+                  <button
+                    onClick={() => loadFav(f)}
+                    className="flex items-center gap-1.5"
+                    title={`Avg ${fmt(f.avgCost)} · Total ${fmt(f.totalCost)}`}
+                  >
+                    <span className="font-semibold tracking-wide">{f.symbol}</span>
+                    <span className="text-[9px] opacity-70">
+                      ${fmt(f.avgCost)} · ${fmt(f.totalCost)}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => removeFav(f.symbol)}
+                    className="opacity-50 hover:opacity-100"
+                    title="Remove"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* ===== SECTION A — Inputs + Live Results ===== */}
+
         <Card className="mb-4 border-border/60 bg-card/40 p-5 backdrop-blur-xl">
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             {/* Inputs */}
