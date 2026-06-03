@@ -19,6 +19,8 @@ import {
   Sparkles,
   Activity,
   Info,
+  Star,
+  X,
 } from "lucide-react";
 import { getQuote, searchSymbols, getUsdThb, getTechnicals } from "@/lib/price.functions";
 
