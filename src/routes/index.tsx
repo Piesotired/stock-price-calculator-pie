@@ -434,56 +434,55 @@ function Index() {
       <div className="pointer-events-none absolute -bottom-40 -left-32 -z-10 h-96 w-96 rounded-full bg-cyan-500/15 blur-3xl" />
       <div className="pointer-events-none absolute top-1/3 left-1/2 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-500/10 blur-3xl" />
 
-      {/* Floating Control Hub (Navigation + Currency Toggles) */}
-      <div className="fixed right-4 top-4 z-50 flex flex-col sm:flex-row items-end sm:items-center gap-2">
-        {/* API & Admin Floating Buttons */}
-        <div className="flex gap-1 rounded-full border border-border/60 bg-background/70 p-1 shadow-lg backdrop-blur-md">
-          <Link to="/api-docs">
-            <Button variant="ghost" className="h-7 rounded-full px-3 text-[11px] text-muted-foreground hover:text-foreground">
-              API
-            </Button>
-          </Link>
-          <Link to="/admin">
-            <Button variant="ghost" className="h-7 rounded-full px-3 text-[11px] text-muted-foreground hover:text-foreground">
-              Admin
-            </Button>
-          </Link>
-        </div>
+      {/* ===== Floating Control Center (Fixed Position Separated to avoid Layout Crunching) ===== */}
 
-        {/* Currency Toggle Buttons */}
-        <div className="flex items-center gap-2">
-          <div className="rounded-full border border-border/60 bg-background/70 p-1 shadow-lg backdrop-blur-md">
-            <button
-              onClick={() => setCcy("USD")}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                ccy === "USD"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              USD $
-            </button>
-            <button
-              onClick={() => setCcy("THB")}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                ccy === "THB"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              THB ฿
-            </button>
-          </div>
+      {/* 1. API & Admin Buttons: Anchored safely to the left of the currency bar */}
+      <div className="fixed right-48 top-4 z-50 flex gap-1 rounded-full border border-border/60 bg-background/70 p-1 shadow-lg backdrop-blur-md">
+        <Link to="/api-docs">
+          <Button variant="ghost" className="h-7 rounded-full px-3 text-[11px] text-muted-foreground hover:text-foreground">
+            API
+          </Button>
+        </Link>
+        <Link to="/admin">
+          <Button variant="ghost" className="h-7 rounded-full px-3 text-[11px] text-muted-foreground hover:text-foreground">
+            Admin
+          </Button>
+        </Link>
+      </div>
+
+      {/* 2. USD/THB Toggle Box: Floating exactly at the top right corner as reference */}
+      <div className="fixed right-4 top-4 z-50 flex items-center gap-2">
+        <div className="rounded-full border border-border/60 bg-background/70 p-1 shadow-lg backdrop-blur-md">
           <button
-            onClick={refreshFx}
-            disabled={fxLoading}
-            title={fxRate ? `1 USD ≈ ${fmt(fxRate)} THB` : "Loading rate…"}
-            className="flex items-center gap-1 rounded-full border border-border/60 bg-background/70 px-2.5 py-1.5 text-[10px] text-muted-foreground shadow-lg backdrop-blur-md hover:text-foreground"
+            onClick={() => setCcy("USD")}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+              ccy === "USD"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
-            <ArrowLeftRight className={`h-3 w-3 ${fxLoading ? "animate-spin" : ""}`} />
-            {fxRate ? `1$ = ${fmt(fxRate)}฿` : "rate…"}
+            USD $
+          </button>
+          <button
+            onClick={() => setCcy("THB")}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+              ccy === "THB"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            THB ฿
           </button>
         </div>
+        <button
+          onClick={refreshFx}
+          disabled={fxLoading}
+          title={fxRate ? `1 USD ≈ ${fmt(fxRate)} THB` : "Loading rate…"}
+          className="flex items-center gap-1 rounded-full border border-border/60 bg-background/70 px-2.5 py-1.5 text-[10px] text-muted-foreground shadow-lg backdrop-blur-md hover:text-foreground"
+        >
+          <ArrowLeftRight className={`h-3 w-3 ${fxLoading ? "animate-spin" : ""}`} />
+          {fxRate ? `1$ = ${fmt(fxRate)}฿` : "rate…"}
+        </button>
       </div>
 
       <div className="mx-auto max-w-[1400px] px-4 py-5">
