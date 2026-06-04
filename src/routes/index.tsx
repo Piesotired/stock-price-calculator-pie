@@ -434,23 +434,7 @@ function Index() {
       <div className="pointer-events-none absolute -bottom-40 -left-32 -z-10 h-96 w-96 rounded-full bg-cyan-500/15 blur-3xl" />
       <div className="pointer-events-none absolute top-1/3 left-1/2 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-500/10 blur-3xl" />
 
-      {/* ===== Floating Control Center (Fixed Position Separated to avoid Layout Crunching) ===== */}
-
-      {/* 1. API & Admin Buttons: Anchored safely to the left of the currency bar */}
-      <div className="fixed right-48 top-4 z-50 flex gap-1 rounded-full border border-border/60 bg-background/70 p-1 shadow-lg backdrop-blur-md">
-        <Link to="/api-docs">
-          <Button variant="ghost" className="h-7 rounded-full px-3 text-[11px] text-muted-foreground hover:text-foreground">
-            API
-          </Button>
-        </Link>
-        <Link to="/admin">
-          <Button variant="ghost" className="h-7 rounded-full px-3 text-[11px] text-muted-foreground hover:text-foreground">
-            Admin
-          </Button>
-        </Link>
-      </div>
-
-      {/* 2. USD/THB Toggle Box: Floating exactly at the top right corner as reference */}
+      {/* Floating currency toggle */}
       <div className="fixed right-4 top-4 z-50 flex items-center gap-2">
         <div className="rounded-full border border-border/60 bg-background/70 p-1 shadow-lg backdrop-blur-md">
           <button
@@ -514,6 +498,18 @@ function Index() {
                 {syncMsg.text}
               </span>
             )}
+            <Link
+              to="/api-docs"
+              className="rounded-md border border-border/60 bg-card/40 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-card/70"
+            >
+              API
+            </Link>
+            <Link
+              to="/admin"
+              className="rounded-md border border-border/60 bg-card/40 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-card/70"
+            >
+              Admin
+            </Link>
           </div>
         </header>
 
