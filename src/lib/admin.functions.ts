@@ -1,24 +1,22 @@
 // Admin-only server functions. Every handler re-checks the admin role.
+// IMPORTANT: server-only imports (client.server, api-key.server) are loaded
+// lazily inside each .handler() to keep the client import graph clean.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { generateApiKey, hashKey } from "./api-key.server";
-
-async function assertAdmin(userId: string) {
-  const { data } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("role", "admin")
-    .maybeSingle();
-  if (!data) throw new Error("Forbidden: admin role required");
-}
 
 export const getAdminOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: roleRow } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!roleRow) throw new Error("Forbidden: admin role required");
+
     const [holdings, keys, logs, profiles] = await Promise.all([
       supabaseAdmin.from("holdings").select("*").order("symbol"),
       supabaseAdmin
@@ -44,7 +42,11 @@ export const createApiKey = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { name: string }) => z.object({ name: z.string().min(1).max(64) }).parse(d))
   .handler(async ({ context, data }) => {
-    await assertAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { generateApiKey, hashKey } = await import("./api-key.server");
+    const { data: roleRow } = await supabaseAdmin
+      .from("user_roles").select("role").eq("user_id", context.userId).eq("role", "admin").maybeSingle();
+    if (!roleRow) throw new Error("Forbidden: admin role required");
     const { key, prefix } = generateApiKey();
     const key_hash = await hashKey(key);
     const { error } = await supabaseAdmin.from("api_keys").insert({
@@ -54,7 +56,6 @@ export const createApiKey = createServerFn({ method: "POST" })
       created_by: context.userId,
     });
     if (error) throw new Error(error.message);
-    // Return the raw key ONCE — never stored
     return { key, prefix };
   });
 
@@ -62,7 +63,10 @@ export const revokeApiKey = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
-    await assertAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: roleRow } = await supabaseAdmin
+      .from("user_roles").select("role").eq("user_id", context.userId).eq("role", "admin").maybeSingle();
+    if (!roleRow) throw new Error("Forbidden: admin role required");
     const { error } = await supabaseAdmin
       .from("api_keys")
       .update({ revoked: true })
@@ -89,7 +93,10 @@ export const upsertHolding = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ context, data }) => {
-    await assertAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: roleRow } = await supabaseAdmin
+      .from("user_roles").select("role").eq("user_id", context.userId).eq("role", "admin").maybeSingle();
+    if (!roleRow) throw new Error("Forbidden: admin role required");
     const row = { ...data, symbol: data.symbol.toUpperCase() };
     const { data: result, error } = await supabaseAdmin
       .from("holdings")
@@ -106,7 +113,10 @@ export const deleteHolding = createServerFn({ method: "POST" })
     z.object({ symbol: z.string().min(1).max(16) }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    await assertAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: roleRow } = await supabaseAdmin
+      .from("user_roles").select("role").eq("user_id", context.userId).eq("role", "admin").maybeSingle();
+    if (!roleRow) throw new Error("Forbidden: admin role required");
     const { error } = await supabaseAdmin
       .from("holdings")
       .delete()
@@ -118,6 +128,7 @@ export const deleteHolding = createServerFn({ method: "POST" })
 export const checkAmAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data } = await supabaseAdmin
       .from("user_roles")
       .select("role")
