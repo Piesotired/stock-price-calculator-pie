@@ -9,10 +9,28 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ApiDocsRouteImport } from './routes/api-docs'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPublicV1HoldingsRouteImport } from './routes/api/public/v1/holdings'
 import { Route as ApiPublicV1HoldingsSymbolRouteImport } from './routes/api/public/v1/holdings.$symbol'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDocsRoute = ApiDocsRouteImport.update({
+  id: '/api-docs',
+  path: '/api-docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -32,39 +50,87 @@ const ApiPublicV1HoldingsSymbolRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/api-docs': typeof ApiDocsRoute
+  '/auth': typeof AuthRoute
   '/api/public/v1/holdings': typeof ApiPublicV1HoldingsRouteWithChildren
   '/api/public/v1/holdings/$symbol': typeof ApiPublicV1HoldingsSymbolRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/api-docs': typeof ApiDocsRoute
+  '/auth': typeof AuthRoute
   '/api/public/v1/holdings': typeof ApiPublicV1HoldingsRouteWithChildren
   '/api/public/v1/holdings/$symbol': typeof ApiPublicV1HoldingsSymbolRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/api-docs': typeof ApiDocsRoute
+  '/auth': typeof AuthRoute
   '/api/public/v1/holdings': typeof ApiPublicV1HoldingsRouteWithChildren
   '/api/public/v1/holdings/$symbol': typeof ApiPublicV1HoldingsSymbolRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/public/v1/holdings' | '/api/public/v1/holdings/$symbol'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/api-docs'
+    | '/auth'
+    | '/api/public/v1/holdings'
+    | '/api/public/v1/holdings/$symbol'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/public/v1/holdings' | '/api/public/v1/holdings/$symbol'
+  to:
+    | '/'
+    | '/admin'
+    | '/api-docs'
+    | '/auth'
+    | '/api/public/v1/holdings'
+    | '/api/public/v1/holdings/$symbol'
   id:
     | '__root__'
     | '/'
+    | '/admin'
+    | '/api-docs'
+    | '/auth'
     | '/api/public/v1/holdings'
     | '/api/public/v1/holdings/$symbol'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  ApiDocsRoute: typeof ApiDocsRoute
+  AuthRoute: typeof AuthRoute
   ApiPublicV1HoldingsRoute: typeof ApiPublicV1HoldingsRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api-docs': {
+      id: '/api-docs'
+      path: '/api-docs'
+      fullPath: '/api-docs'
+      preLoaderRoute: typeof ApiDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -102,6 +168,9 @@ const ApiPublicV1HoldingsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  ApiDocsRoute: ApiDocsRoute,
+  AuthRoute: AuthRoute,
   ApiPublicV1HoldingsRoute: ApiPublicV1HoldingsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
