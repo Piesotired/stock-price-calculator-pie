@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
@@ -486,17 +486,31 @@ function Index() {
               </p>
             </div>
           </div>
-          {syncMsg && (
-            <span
-              className={`rounded-md border px-2 py-0.5 text-[11px] ${
-                syncMsg.ok
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                  : "border-red-500/30 bg-red-500/10 text-red-400"
-              }`}
+          <div className="flex items-center gap-2">
+            {syncMsg && (
+              <span
+                className={`rounded-md border px-2 py-0.5 text-[11px] ${
+                  syncMsg.ok
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                    : "border-red-500/30 bg-red-500/10 text-red-400"
+                }`}
+              >
+                {syncMsg.text}
+              </span>
+            )}
+            <Link
+              to="/api-docs"
+              className="rounded-md border border-border/60 bg-card/40 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-card/70"
             >
-              {syncMsg.text}
-            </span>
-          )}
+              API
+            </Link>
+            <Link
+              to="/admin"
+              className="rounded-md border border-border/60 bg-card/40 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-card/70"
+            >
+              Admin
+            </Link>
+          </div>
         </header>
 
         {/* Favorites bar */}
