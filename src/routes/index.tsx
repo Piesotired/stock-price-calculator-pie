@@ -481,17 +481,12 @@ function Index() {
               </span>
             )}
             <Link
-              to="/api-docs"
+              to="/market"
               className="rounded-md border border-border/60 bg-card/40 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-card/70"
             >
-              API
+              Market Playground
             </Link>
-            <Link
-              to="/admin"
-              className="rounded-md border border-border/60 bg-card/40 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-card/70"
-            >
-              Admin
-            </Link>
+
           </div>
         </header>
 
