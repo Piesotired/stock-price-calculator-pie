@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Activity, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Search, Activity } from "lucide-react";
 
 export const Route = createFileRoute("/market")({
   head: () => ({
