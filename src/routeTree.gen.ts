@@ -9,13 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MarketRouteImport } from './routes/market'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ApiDocsRouteImport } from './routes/api-docs'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPublicV1HoldingsRouteImport } from './routes/api/public/v1/holdings'
+import { Route as ApiPublicV1MarketSymbolRouteImport } from './routes/api/public/v1/market.$symbol'
 import { Route as ApiPublicV1HoldingsSymbolRouteImport } from './routes/api/public/v1/holdings.$symbol'
 
+const MarketRoute = MarketRouteImport.update({
+  id: '/market',
+  path: '/market',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -41,6 +48,11 @@ const ApiPublicV1HoldingsRoute = ApiPublicV1HoldingsRouteImport.update({
   path: '/api/public/v1/holdings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicV1MarketSymbolRoute = ApiPublicV1MarketSymbolRouteImport.update({
+  id: '/api/public/v1/market/$symbol',
+  path: '/api/public/v1/market/$symbol',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicV1HoldingsSymbolRoute =
   ApiPublicV1HoldingsSymbolRouteImport.update({
     id: '/$symbol',
@@ -53,16 +65,20 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
+  '/market': typeof MarketRoute
   '/api/public/v1/holdings': typeof ApiPublicV1HoldingsRouteWithChildren
   '/api/public/v1/holdings/$symbol': typeof ApiPublicV1HoldingsSymbolRoute
+  '/api/public/v1/market/$symbol': typeof ApiPublicV1MarketSymbolRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
+  '/market': typeof MarketRoute
   '/api/public/v1/holdings': typeof ApiPublicV1HoldingsRouteWithChildren
   '/api/public/v1/holdings/$symbol': typeof ApiPublicV1HoldingsSymbolRoute
+  '/api/public/v1/market/$symbol': typeof ApiPublicV1MarketSymbolRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -70,8 +86,10 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/api-docs': typeof ApiDocsRoute
   '/auth': typeof AuthRoute
+  '/market': typeof MarketRoute
   '/api/public/v1/holdings': typeof ApiPublicV1HoldingsRouteWithChildren
   '/api/public/v1/holdings/$symbol': typeof ApiPublicV1HoldingsSymbolRoute
+  '/api/public/v1/market/$symbol': typeof ApiPublicV1MarketSymbolRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -80,24 +98,30 @@ export interface FileRouteTypes {
     | '/admin'
     | '/api-docs'
     | '/auth'
+    | '/market'
     | '/api/public/v1/holdings'
     | '/api/public/v1/holdings/$symbol'
+    | '/api/public/v1/market/$symbol'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
     | '/api-docs'
     | '/auth'
+    | '/market'
     | '/api/public/v1/holdings'
     | '/api/public/v1/holdings/$symbol'
+    | '/api/public/v1/market/$symbol'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/api-docs'
     | '/auth'
+    | '/market'
     | '/api/public/v1/holdings'
     | '/api/public/v1/holdings/$symbol'
+    | '/api/public/v1/market/$symbol'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -105,11 +129,20 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   ApiDocsRoute: typeof ApiDocsRoute
   AuthRoute: typeof AuthRoute
+  MarketRoute: typeof MarketRoute
   ApiPublicV1HoldingsRoute: typeof ApiPublicV1HoldingsRouteWithChildren
+  ApiPublicV1MarketSymbolRoute: typeof ApiPublicV1MarketSymbolRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/market': {
+      id: '/market'
+      path: '/market'
+      fullPath: '/market'
+      preLoaderRoute: typeof MarketRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -145,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1HoldingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/v1/market/$symbol': {
+      id: '/api/public/v1/market/$symbol'
+      path: '/api/public/v1/market/$symbol'
+      fullPath: '/api/public/v1/market/$symbol'
+      preLoaderRoute: typeof ApiPublicV1MarketSymbolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/v1/holdings/$symbol': {
       id: '/api/public/v1/holdings/$symbol'
       path: '/$symbol'
@@ -171,7 +211,9 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   ApiDocsRoute: ApiDocsRoute,
   AuthRoute: AuthRoute,
+  MarketRoute: MarketRoute,
   ApiPublicV1HoldingsRoute: ApiPublicV1HoldingsRouteWithChildren,
+  ApiPublicV1MarketSymbolRoute: ApiPublicV1MarketSymbolRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
