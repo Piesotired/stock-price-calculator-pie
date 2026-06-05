@@ -14,17 +14,14 @@ export const Route = createFileRoute("/market")({
 
 type MarketData = {
   symbol: string;
-  price: number;
-  currency: string;
-  rsi: number | null;
-  ema20: number;
-  ema50: number;
-  ema200: number | null;
-  supports: number[];
-  resistances: number[];
-  trend: "bullish" | "bearish" | "neutral";
+  current_price: number;
+  rsi_14: number;
+  ema_20: number;
+  ema_50: number;
+  support_level: number;
+  resistance_level: number;
+  notes: string;
   source: string;
-  time: string;
 };
 
 const fmt = (v: number | null | undefined, d = 2) =>
@@ -37,7 +34,6 @@ function MarketPage() {
   const [input, setInput] = useState("");
   const [symbol, setSymbol] = useState("");
   const [data, setData] = useState<MarketData | null>(null);
-  const [fallback, setFallback] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +48,6 @@ function MarketPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
       setData(json.data);
-      setFallback(Boolean(json.fallback));
       setStep(2);
     } catch (e: any) {
       setError(e?.message ?? "Failed to fetch");
@@ -133,35 +128,25 @@ function MarketPage() {
                 <h2 className="text-xl font-bold tracking-wide">{data.symbol}</h2>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold">${fmt(data.price)}</p>
-                <p className="text-[10px] text-muted-foreground">{data.currency} · {new Date(data.time).toLocaleString()}</p>
+                <p className="text-2xl font-bold">${fmt(data.current_price)}</p>
+                <p className="text-[10px] text-muted-foreground">{data.source}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-xs">
-              <span className={`rounded-full px-2 py-0.5 font-semibold inline-flex items-center gap-1 ${
-                data.trend === "bullish" ? "bg-emerald-500/15 text-emerald-400" :
-                data.trend === "bearish" ? "bg-red-500/15 text-red-400" :
-                "bg-muted text-muted-foreground"
-              }`}>
-                {data.trend === "bullish" ? <TrendingUp className="h-3 w-3" /> : data.trend === "bearish" ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                {data.trend}
-              </span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
-                source: {data.source}{fallback ? " (fallback)" : ""}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-              <Stat label="RSI (14)" value={fmt(data.rsi)} />
-              <Stat label="EMA 20" value={`$${fmt(data.ema20)}`} />
-              <Stat label="EMA 50" value={`$${fmt(data.ema50)}`} />
-              <Stat label="EMA 200" value={data.ema200 ? `$${fmt(data.ema200)}` : "—"} />
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+              <Stat label="RSI (14)" value={fmt(data.rsi_14)} />
+              <Stat label="EMA 20" value={`$${fmt(data.ema_20)}`} />
+              <Stat label="EMA 50" value={`$${fmt(data.ema_50)}`} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Levels title="Resistance (แนวต้าน)" levels={data.resistances} color="text-red-400" />
-              <Levels title="Support (แนวรับ)" levels={data.supports} color="text-emerald-400" />
+              <LevelCard title="Resistance (แนวต้าน)" value={data.resistance_level} color="text-red-400" />
+              <LevelCard title="Support (แนวรับ)" value={data.support_level} color="text-emerald-400" />
+            </div>
+
+            <div className="rounded-lg border border-border/60 bg-background/40 p-3">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Notes</p>
+              <p className="text-sm">{data.notes}</p>
             </div>
 
             <pre className="text-[10px] bg-muted p-3 rounded overflow-x-auto">
@@ -183,17 +168,12 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Levels({ title, levels, color }: { title: string; levels: number[]; color: string }) {
+function LevelCard({ title, value, color }: { title: string; value: number; color: string }) {
   return (
     <div className="rounded-lg border border-border/60 bg-background/40 p-3">
       <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">{title}</p>
-      {levels.length === 0 ? (
-        <p className="text-xs text-muted-foreground">—</p>
-      ) : (
-        <ul className={`space-y-0.5 text-sm font-mono ${color}`}>
-          {levels.map((l, i) => <li key={i}>${fmt(l)}</li>)}
-        </ul>
-      )}
+      <p className={`text-sm font-mono font-semibold ${color}`}>${fmt(value)}</p>
     </div>
   );
 }
+
